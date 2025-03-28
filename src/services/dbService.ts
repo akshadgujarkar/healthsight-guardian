@@ -1,3 +1,4 @@
+
 import User from '../models/User';
 import HealthHistory from '../models/HealthHistory';
 import { connectDB } from '../config/dbConfig';
@@ -26,7 +27,8 @@ export const getUserProfile = async (email: string) => {
   if (!(await ensureConnection())) return null;
   
   try {
-    return await User.findOne({ email }).exec();
+    const user = await User.findOne({ email }).lean();
+    return user;
   } catch (error) {
     console.error('Failed to get user profile:', error);
     toast.error('Failed to load user profile');
@@ -38,7 +40,7 @@ export const saveUserProfile = async (userData: any) => {
   if (!(await ensureConnection())) return null;
   
   try {
-    const existingUser = await User.findOne({ email: userData.email }).exec();
+    const existingUser = await User.findOne({ email: userData.email }).lean();
     
     if (existingUser) {
       // Update existing user
@@ -46,13 +48,13 @@ export const saveUserProfile = async (userData: any) => {
         { email: userData.email },
         userData,
         { new: true }
-      ).exec();
+      ).lean();
       return updatedUser;
     } else {
       // Create new user
       const newUser = new User(userData);
       await newUser.save();
-      return newUser;
+      return newUser.toObject();
     }
   } catch (error) {
     console.error('Failed to save user profile:', error);
@@ -66,7 +68,8 @@ export const getUserHealthHistory = async (userId: string) => {
   if (!(await ensureConnection())) return [];
   
   try {
-    return await HealthHistory.find({ userId }).sort({ date: -1 }).exec();
+    const history = await HealthHistory.find({ userId }).sort({ date: -1 }).lean();
+    return history;
   } catch (error) {
     console.error('Failed to get health history:', error);
     toast.error('Failed to load health history');
@@ -88,7 +91,7 @@ export const saveHealthAnalysis = async (userId: string, analysisData: any) => {
     });
     
     await newAnalysis.save();
-    return newAnalysis;
+    return newAnalysis.toObject();
   } catch (error) {
     console.error('Failed to save health analysis:', error);
     toast.error('Failed to save health analysis');
@@ -102,7 +105,7 @@ export const getHealthRecommendations = async (userId: string) => {
   
   try {
     // Get user's health history
-    const healthHistory = await HealthHistory.find({ userId }).sort({ date: -1 }).limit(5).exec();
+    const healthHistory = await HealthHistory.find({ userId }).sort({ date: -1 }).limit(5).lean();
     
     if (!healthHistory || healthHistory.length === 0) {
       return [
@@ -196,7 +199,7 @@ export const calculateHealthStatus = async (userId: string) => {
   if (!(await ensureConnection())) return 'Unknown';
   
   try {
-    const recentHistory = await HealthHistory.find({ userId }).sort({ date: -1 }).limit(3).exec();
+    const recentHistory = await HealthHistory.find({ userId }).sort({ date: -1 }).limit(3).lean();
     
     if (!recentHistory || recentHistory.length === 0) {
       return 'No Data';
