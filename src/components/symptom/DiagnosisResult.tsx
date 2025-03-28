@@ -1,11 +1,11 @@
-
 import React, { useState } from 'react';
 import { DiagnosisResultType } from './SymptomChecker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, Check, AlertCircle, PlusCircle, ChevronRight } from 'lucide-react';
+import { AlertTriangle, Check, AlertCircle, PlusCircle, ChevronRight, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import NearbyHospitals from './NearbyHospitals';
 
 interface DiagnosisResultProps {
   result: DiagnosisResultType;
@@ -14,6 +14,11 @@ interface DiagnosisResultProps {
 
 const DiagnosisResult: React.FC<DiagnosisResultProps> = ({ result, onReset }) => {
   const [activeTab, setActiveTab] = useState('conditions');
+  
+  // Get the main condition (highest probability) to search for nearby hospitals
+  const mainCondition = result.possibleConditions.length > 0 
+    ? result.possibleConditions[0].name 
+    : '';
 
   return (
     <Card className="w-full animate-fade-in">
@@ -28,11 +33,12 @@ const DiagnosisResult: React.FC<DiagnosisResultProps> = ({ result, onReset }) =>
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-4 mb-8">
+          <TabsList className="grid grid-cols-5 mb-8">
             <TabsTrigger value="conditions">Possible Conditions</TabsTrigger>
             <TabsTrigger value="medications">Medications</TabsTrigger>
             <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
             <TabsTrigger value="prevention">Prevention</TabsTrigger>
+            <TabsTrigger value="nearby">Nearby Facilities</TabsTrigger>
           </TabsList>
           
           <TabsContent value="conditions" className="space-y-4">
@@ -160,6 +166,10 @@ const DiagnosisResult: React.FC<DiagnosisResultProps> = ({ result, onReset }) =>
                 <ChevronRight className="ml-1 h-4 w-4" />
               </Link>
             </div>
+          </TabsContent>
+          
+          <TabsContent value="nearby" className="space-y-4">
+            <NearbyHospitals condition={mainCondition} />
           </TabsContent>
         </Tabs>
         
