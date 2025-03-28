@@ -1,5 +1,16 @@
 
-import mongoose from 'mongoose';
+import mongoose, { model, Model, models, Schema }  from 'mongoose';
+
+
+export interface IHealthHistory extends Document {
+  userId: Schema.Types.ObjectId;
+  date: Date;
+  symptoms: string[];
+  diagnosis?: string;
+  recommendations?: string;
+  severity: 'Low' | 'Medium' | 'High';
+}
+
 
 const HealthHistorySchema = new mongoose.Schema({
   userId: {
@@ -27,4 +38,6 @@ const HealthHistorySchema = new mongoose.Schema({
   }
 });
 
-export default mongoose.models.HealthHistory || mongoose.model('HealthHistory', HealthHistorySchema);
+const HealthHistory: Model<IHealthHistory> = models?.HealthHistory || model<IHealthHistory>('HealthHistory', HealthHistorySchema);
+
+export default HealthHistory;

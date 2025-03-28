@@ -1,5 +1,5 @@
 
-import User from '../models/User';
+import  User  from '../models/User';
 import HealthHistory from '../models/HealthHistory';
 import { connectDB } from '../config/dbConfig';
 import { toast } from 'sonner';
@@ -8,19 +8,20 @@ import mongoose from 'mongoose';
 // Initialize connection when the service is imported
 let isConnected = false;
 
-const ensureConnection = async () => {
+const ensureConnection = async (): Promise<boolean> => {
   if (!isConnected) {
     try {
       await connectDB();
       isConnected = true;
     } catch (error) {
-      console.error('Failed to connect to database:', error);
+      console.error('❌ Failed to connect to database:', error);
       toast.error('Database connection failed. Some features may not work correctly.');
       return false;
     }
   }
-  return true;
+  return isConnected;
 };
+
 
 // User-related operations
 export const getUserProfile = async (email: string) => {
