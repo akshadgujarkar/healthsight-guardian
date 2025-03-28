@@ -7,7 +7,6 @@ export const API_KEYS = {
   // Gemini API key
   GEMINI_API_KEY: "AIzaSyCeLn2sUjEmAi0BtqYmBDCCnCh_eQzAXII",
   
-  // Google Places API key - Replace this with your actual Google Places API key
-  GOOGLE_PLACES_API_KEY: "YOUR_GOOGLE_PLACES_API_KEY" 
+  // We no longer need Google Places API key as we're using OpenStreetMap/Overpass API
+  // which doesn't require API keys
 };
-
