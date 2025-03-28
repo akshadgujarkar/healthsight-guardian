@@ -6,15 +6,16 @@ import { Calendar, Clock, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getUserHealthHistory } from '@/services/dbService';
 
+
 interface Analysis {
-  _id?: string;
-  id?: number;
+  _id?: string; // MongoDB _id is a string when converted
   date: string;
   symptoms: string[];
   diagnosis: string;
   recommendations: string;
   severity?: string;
 }
+
 
 // Mock user ID - in a real app this would come from authentication
 const MOCK_USER_ID = '65f5e16c8e3f7b6a12345678';
@@ -32,13 +33,14 @@ const HealthHistory: React.FC = () => {
         if (history && history.length > 0) {
           // Transform data format if needed
           const formattedHistory = history.map(item => ({
-            id: item._id,
+            _id: item._id.toString(), // Convert ObjectId to string
             date: new Date(item.date).toISOString(),
             symptoms: item.symptoms,
             diagnosis: item.diagnosis,
             recommendations: item.recommendations,
             severity: item.severity
           }));
+          
           
           setAnalyses(formattedHistory);
         } else {
@@ -84,7 +86,7 @@ const HealthHistory: React.FC = () => {
         {analyses.length > 0 ? (
           <div className="space-y-6">
             {analyses.map((analysis) => (
-              <div key={analysis.id || analysis._id} className="border border-border rounded-lg p-4 hover:bg-accent/5 transition-colors">
+              <div key={analysis._id || analysis._id} className="border border-border rounded-lg p-4 hover:bg-accent/5 transition-colors">
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="font-bold text-lg text-foreground">{analysis.diagnosis}</h3>
