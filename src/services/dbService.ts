@@ -1,8 +1,8 @@
-
 import User from '../models/User';
 import HealthHistory from '../models/HealthHistory';
 import { connectDB } from '../config/dbConfig';
 import { toast } from 'sonner';
+import mongoose from 'mongoose';
 
 // Initialize connection when the service is imported
 let isConnected = false;
@@ -26,7 +26,7 @@ export const getUserProfile = async (email: string) => {
   if (!(await ensureConnection())) return null;
   
   try {
-    return await User.findOne({ email });
+    return await User.findOne({ email }).exec();
   } catch (error) {
     console.error('Failed to get user profile:', error);
     toast.error('Failed to load user profile');
@@ -38,7 +38,7 @@ export const saveUserProfile = async (userData: any) => {
   if (!(await ensureConnection())) return null;
   
   try {
-    const existingUser = await User.findOne({ email: userData.email });
+    const existingUser = await User.findOne({ email: userData.email }).exec();
     
     if (existingUser) {
       // Update existing user
@@ -46,7 +46,7 @@ export const saveUserProfile = async (userData: any) => {
         { email: userData.email },
         userData,
         { new: true }
-      );
+      ).exec();
       return updatedUser;
     } else {
       // Create new user
@@ -66,7 +66,7 @@ export const getUserHealthHistory = async (userId: string) => {
   if (!(await ensureConnection())) return [];
   
   try {
-    return await HealthHistory.find({ userId }).sort({ date: -1 });
+    return await HealthHistory.find({ userId }).sort({ date: -1 }).exec();
   } catch (error) {
     console.error('Failed to get health history:', error);
     toast.error('Failed to load health history');
@@ -102,7 +102,7 @@ export const getHealthRecommendations = async (userId: string) => {
   
   try {
     // Get user's health history
-    const healthHistory = await HealthHistory.find({ userId }).sort({ date: -1 }).limit(5);
+    const healthHistory = await HealthHistory.find({ userId }).sort({ date: -1 }).limit(5).exec();
     
     if (!healthHistory || healthHistory.length === 0) {
       return [
@@ -196,7 +196,7 @@ export const calculateHealthStatus = async (userId: string) => {
   if (!(await ensureConnection())) return 'Unknown';
   
   try {
-    const recentHistory = await HealthHistory.find({ userId }).sort({ date: -1 }).limit(3);
+    const recentHistory = await HealthHistory.find({ userId }).sort({ date: -1 }).limit(3).exec();
     
     if (!recentHistory || recentHistory.length === 0) {
       return 'No Data';

@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DiagnosisResultType } from './SymptomChecker';
 import NearbyHospitals from './NearbyHospitals';
-import { ArrowLeft, ThumbsUp, ThumbsDown, Activity, Pills, Shield, Stethoscope, HelpCircle } from 'lucide-react';
+import { ArrowLeft, ThumbsUp, ThumbsDown, Activity, Pill, Shield, Stethoscope, HelpCircle } from 'lucide-react';
 
 interface DiagnosisResultProps {
   result: DiagnosisResultType;
@@ -17,7 +16,6 @@ const DiagnosisResult: React.FC<DiagnosisResultProps> = ({ result, onReset, symp
   const [feedbackGiven, setFeedbackGiven] = useState(false);
 
   const handleFeedback = (isHelpful: boolean) => {
-    // Here you would typically send feedback data to your backend
     console.log(`User found diagnosis ${isHelpful ? 'helpful' : 'not helpful'}`);
     setFeedbackGiven(true);
   };
@@ -80,7 +78,7 @@ const DiagnosisResult: React.FC<DiagnosisResultProps> = ({ result, onReset, symp
                 <span className="hidden sm:inline">Recommendations</span>
               </TabsTrigger>
               <TabsTrigger value="medications" className="flex items-center">
-                <Pills className="h-4 w-4 mr-2" />
+                <Pill className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">Medications</span>
               </TabsTrigger>
               <TabsTrigger value="prevention" className="flex items-center">
@@ -173,7 +171,7 @@ const DiagnosisResult: React.FC<DiagnosisResultProps> = ({ result, onReset, symp
       </Card>
       
       {result.possibleConditions.length > 0 && (
-        <NearbyHospitals condition={result.possibleConditions[0].name} symptoms={symptoms} />
+        <NearbyHospitals condition={result.possibleConditions[0].name} />
       )}
     </div>
   );

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Hospital, fetchNearbyHospitals, searchHospitalsByAddress, mockNearbyHospitals } from '@/services/nearbyHospitalsService';
@@ -10,9 +9,10 @@ import { toast } from 'sonner';
 
 interface NearbyHospitalsProps {
   condition: string;
+  symptoms?: string[];
 }
 
-const NearbyHospitals: React.FC<NearbyHospitalsProps> = ({ condition }) => {
+const NearbyHospitals: React.FC<NearbyHospitalsProps> = ({ condition, symptoms = [] }) => {
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
