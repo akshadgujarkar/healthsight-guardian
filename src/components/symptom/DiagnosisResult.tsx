@@ -1,192 +1,181 @@
+
 import React, { useState } from 'react';
-import { DiagnosisResultType } from './SymptomChecker';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, Check, AlertCircle, PlusCircle, ChevronRight, MapPin } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { DiagnosisResultType } from './SymptomChecker';
 import NearbyHospitals from './NearbyHospitals';
+import { ArrowLeft, ThumbsUp, ThumbsDown, Activity, Pills, Shield, Stethoscope, HelpCircle } from 'lucide-react';
 
 interface DiagnosisResultProps {
   result: DiagnosisResultType;
   onReset: () => void;
+  symptoms?: string[];
 }
 
-const DiagnosisResult: React.FC<DiagnosisResultProps> = ({ result, onReset }) => {
-  const [activeTab, setActiveTab] = useState('conditions');
-  
-  // Get the main condition (highest probability) to search for nearby hospitals
-  const mainCondition = result.possibleConditions.length > 0 
-    ? result.possibleConditions[0].name 
-    : '';
+const DiagnosisResult: React.FC<DiagnosisResultProps> = ({ result, onReset, symptoms = [] }) => {
+  const [feedbackGiven, setFeedbackGiven] = useState(false);
+
+  const handleFeedback = (isHelpful: boolean) => {
+    // Here you would typically send feedback data to your backend
+    console.log(`User found diagnosis ${isHelpful ? 'helpful' : 'not helpful'}`);
+    setFeedbackGiven(true);
+  };
 
   return (
-    <Card className="w-full animate-fade-in">
-      <CardHeader>
-        <CardTitle className="text-2xl flex items-center">
-          <Check className="mr-2 h-5 w-5 text-green-500" />
-          Analysis Complete
-        </CardTitle>
-        <CardDescription>
-          Based on the symptoms and information you provided, here's what our AI system has identified
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-5 mb-8">
-            <TabsTrigger value="conditions">Possible Conditions</TabsTrigger>
-            <TabsTrigger value="medications">Medications</TabsTrigger>
-            <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
-            <TabsTrigger value="prevention">Prevention</TabsTrigger>
-            <TabsTrigger value="nearby">Nearby Facilities</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="conditions" className="space-y-4">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-              <div className="flex items-start">
-                <AlertTriangle className="text-yellow-500 mr-3 mt-0.5" />
-                <div>
-                  <h4 className="font-semibold text-yellow-800">Important Disclaimer</h4>
-                  <p className="text-yellow-700 text-sm">
-                    This analysis is not a medical diagnosis. Always consult with a healthcare professional
-                    for proper medical advice and treatment.
-                  </p>
-                </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <Button 
+          variant="outline" 
+          className="flex items-center" 
+          onClick={onReset}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Symptom Checker
+        </Button>
+        
+        {!feedbackGiven ? (
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-muted-foreground">Was this diagnosis helpful?</span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center" 
+              onClick={() => handleFeedback(true)}
+            >
+              <ThumbsUp className="h-4 w-4 mr-1" />
+              Yes
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center" 
+              onClick={() => handleFeedback(false)}
+            >
+              <ThumbsDown className="h-4 w-4 mr-1" />
+              No
+            </Button>
+          </div>
+        ) : (
+          <span className="text-sm text-muted-foreground">Thank you for your feedback!</span>
+        )}
+      </div>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Diagnosis Results</CardTitle>
+          <CardDescription>
+            Based on your described symptoms, here are possible conditions and recommendations
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="conditions" className="space-y-4">
+            <TabsList className="grid grid-cols-5 w-full">
+              <TabsTrigger value="conditions" className="flex items-center">
+                <Activity className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Conditions</span>
+              </TabsTrigger>
+              <TabsTrigger value="recommendations" className="flex items-center">
+                <Stethoscope className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Recommendations</span>
+              </TabsTrigger>
+              <TabsTrigger value="medications" className="flex items-center">
+                <Pills className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Medications</span>
+              </TabsTrigger>
+              <TabsTrigger value="prevention" className="flex items-center">
+                <Shield className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Prevention</span>
+              </TabsTrigger>
+              <TabsTrigger value="followup" className="flex items-center">
+                <HelpCircle className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Follow-up</span>
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="conditions" className="space-y-4">
+              <div className="space-y-4">
+                {result.possibleConditions.map((condition, index) => (
+                  <div key={index} className="p-4 border rounded-md">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-bold text-lg">{condition.name}</h3>
+                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                        {condition.probability}
+                      </span>
+                    </div>
+                    <p className="text-gray-700">{condition.description}</p>
+                  </div>
+                ))}
               </div>
-            </div>
+            </TabsContent>
             
-            <h3 className="font-semibold text-lg mb-4">Potential Conditions</h3>
-            
-            <div className="space-y-6">
-              {result.possibleConditions.map((condition, index) => (
-                <div key={index} className="border rounded-lg p-5 hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-bold text-lg">{condition.name}</h4>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      condition.probability.includes('High') 
-                        ? 'bg-red-100 text-red-800' 
-                        : condition.probability.includes('Medium')
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-green-100 text-green-800'
-                    }`}>
-                      {condition.probability}
+            <TabsContent value="recommendations" className="space-y-4">
+              <ul className="space-y-2">
+                {result.recommendations.map((recommendation, index) => (
+                  <li key={index} className="p-3 bg-background border rounded-md flex items-start">
+                    <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary text-xs font-medium mr-3 flex-shrink-0">
+                      {index + 1}
                     </span>
+                    <span>{recommendation}</span>
+                  </li>
+                ))}
+              </ul>
+            </TabsContent>
+            
+            <TabsContent value="medications" className="space-y-4">
+              <div className="space-y-4">
+                {result.medications.map((medication, index) => (
+                  <div key={index} className="p-4 border rounded-md">
+                    <h3 className="font-bold mb-2">{medication.name}</h3>
+                    <div className="mb-2">
+                      <h4 className="text-sm font-semibold text-gray-600 mb-1">Usage</h4>
+                      <p className="text-gray-700">{medication.usage}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-600 mb-1">Warnings</h4>
+                      <p className="text-gray-700">{medication.warnings}</p>
+                    </div>
                   </div>
-                  <p className="text-gray-700">{condition.description}</p>
-                  <div className="mt-4">
-                    <Link 
-                      to={`/disease-info?disease=${encodeURIComponent(condition.name)}`}
-                      className="text-health-blue hover:text-health-dark-blue font-medium flex items-center"
-                    >
-                      Learn more about {condition.name}
-                      <ChevronRight className="ml-1 h-4 w-4" />
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="medications" className="space-y-4">
-            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
-              <div className="flex items-start">
-                <AlertCircle className="text-blue-500 mr-3 mt-0.5" />
-                <div>
-                  <h4 className="font-semibold text-blue-800">Medication Information</h4>
-                  <p className="text-blue-700 text-sm">
-                    These are potential medications that may be prescribed for your symptoms. 
-                    Never self-medicate without consulting a healthcare professional.
-                  </p>
-                </div>
+                ))}
               </div>
-            </div>
+            </TabsContent>
             
-            <h3 className="font-semibold text-lg mb-4">Suggested Medications</h3>
+            <TabsContent value="prevention" className="space-y-4">
+              <ul className="space-y-2">
+                {result.preventionTips.map((tip, index) => (
+                  <li key={index} className="p-3 bg-background border rounded-md flex items-start">
+                    <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary text-xs font-medium mr-3 flex-shrink-0">
+                      {index + 1}
+                    </span>
+                    <span>{tip}</span>
+                  </li>
+                ))}
+              </ul>
+            </TabsContent>
             
-            <div className="space-y-6">
-              {result.medications.map((medication, index) => (
-                <div key={index} className="border rounded-lg p-5 hover:shadow-md transition-shadow">
-                  <h4 className="font-bold text-lg mb-2">{medication.name}</h4>
-                  <div className="mb-3">
-                    <h5 className="font-semibold text-sm text-gray-600">Usage</h5>
-                    <p className="text-gray-700">{medication.usage}</p>
-                  </div>
-                  <div>
-                    <h5 className="font-semibold text-sm text-gray-600">Warnings</h5>
-                    <p className="text-gray-700">{medication.warnings}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="recommendations" className="space-y-4">
-            <h3 className="font-semibold text-lg mb-4">Recommendations</h3>
-            <ul className="space-y-3">
-              {result.recommendations.map((recommendation, index) => (
-                <li key={index} className="flex items-start">
-                  <PlusCircle className="text-health-green mr-3 mt-1 flex-shrink-0" />
-                  <span>{recommendation}</span>
-                </li>
-              ))}
-            </ul>
-            
-            {result.followUpQuestions && (
-              <div className="mt-8">
-                <h3 className="font-semibold text-lg mb-4">Follow-up Questions to Ask Your Doctor</h3>
-                <ul className="space-y-3">
+            <TabsContent value="followup" className="space-y-4">
+              {result.followUpQuestions && result.followUpQuestions.length > 0 ? (
+                <ul className="space-y-2">
                   {result.followUpQuestions.map((question, index) => (
-                    <li key={index} className="flex items-start">
-                      <ChevronRight className="text-health-blue mr-3 mt-1 flex-shrink-0" />
-                      <span>{question}</span>
+                    <li key={index} className="p-3 bg-background border rounded-md">
+                      {question}
                     </li>
                   ))}
                 </ul>
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="prevention" className="space-y-4">
-            <h3 className="font-semibold text-lg mb-4">Prevention Tips</h3>
-            <ul className="space-y-3">
-              {result.preventionTips.map((tip, index) => (
-                <li key={index} className="flex items-start">
-                  <Check className="text-health-green mr-3 mt-1 flex-shrink-0" />
-                  <span>{tip}</span>
-                </li>
-              ))}
-            </ul>
-            
-            <div className="mt-8">
-              <Link 
-                to="/prevention-tips"
-                className="text-health-blue hover:text-health-dark-blue font-medium flex items-center"
-              >
-                See more prevention tips and health guidance
-                <ChevronRight className="ml-1 h-4 w-4" />
-              </Link>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="nearby" className="space-y-4">
-            <NearbyHospitals condition={mainCondition} />
-          </TabsContent>
-        </Tabs>
-        
-        <div className="mt-8 flex justify-between">
-          <Button 
-            variant="outline" 
-            onClick={onReset}
-            className="health-button-outline"
-          >
-            Start New Analysis
-          </Button>
-          <Button asChild className="health-button-primary">
-            <Link to="/dashboard">Save to Health Records</Link>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+              ) : (
+                <div className="p-4 text-center">
+                  <p className="text-gray-600">No follow-up questions at this time.</p>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+      
+      {result.possibleConditions.length > 0 && (
+        <NearbyHospitals condition={result.possibleConditions[0].name} symptoms={symptoms} />
+      )}
+    </div>
   );
 };
 

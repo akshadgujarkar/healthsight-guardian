@@ -1,52 +1,187 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { User, Save } from 'lucide-react';
+import { User, Save, Loader2 } from 'lucide-react';
+import { saveUserProfile, getUserProfile } from '@/services/dbService';
+import { toast } from 'sonner';
+
+// Mock user email - in a real app this would come from authentication
+const MOCK_USER_EMAIL = 'john.doe@example.com';
 
 const UserProfile: React.FC = () => {
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: MOCK_USER_EMAIL,
+    phone: '',
+    dob: '',
+    gender: 'male',
+    address: '',
+    city: '',
+    state: '',
+    zip: '',
+    medicalHistory: '',
+    emergencyContact: ''
+  });
+  
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      setIsLoading(true);
+      try {
+        const userProfile = await getUserProfile(MOCK_USER_EMAIL);
+        
+        if (userProfile) {
+          // Format date for input field
+          const formattedDob = userProfile.dob 
+            ? new Date(userProfile.dob).toISOString().split('T')[0]
+            : '';
+            
+          setFormData({
+            firstName: userProfile.firstName || '',
+            lastName: userProfile.lastName || '',
+            email: userProfile.email,
+            phone: userProfile.phone || '',
+            dob: formattedDob,
+            gender: userProfile.gender || 'male',
+            address: userProfile.address || '',
+            city: userProfile.city || '',
+            state: userProfile.state || '',
+            zip: userProfile.zip || '',
+            medicalHistory: userProfile.medicalHistory || '',
+            emergencyContact: userProfile.emergencyContact || ''
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+        toast.error('Failed to load user profile');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleSelectChange = (value: string, field: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    
+    try {
+      const result = await saveUserProfile(formData);
+      
+      if (result) {
+        toast.success('Profile saved successfully');
+      } else {
+        toast.error('Failed to save profile');
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      toast.error('An error occurred while saving your profile');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="pt-6 flex justify-center items-center h-80">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card>
+    <Card className="border-accent-foreground/10 bg-card/50 backdrop-blur-sm">
       <CardHeader>
-        <CardTitle className="flex items-center">
+        <CardTitle className="flex items-center text-foreground">
           <User className="mr-2 h-5 w-5" />
           Personal Information
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-muted-foreground">
           Update your personal details and health information
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form className="space-y-6">
+        <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="firstName">First Name</Label>
-              <Input id="firstName" placeholder="John" defaultValue="John" />
+              <Input 
+                id="firstName" 
+                placeholder="John" 
+                value={formData.firstName}
+                onChange={handleChange}
+                className="bg-background/50"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="lastName">Last Name</Label>
-              <Input id="lastName" placeholder="Doe" defaultValue="Doe" />
+              <Input 
+                id="lastName" 
+                placeholder="Doe" 
+                value={formData.lastName}
+                onChange={handleChange}
+                className="bg-background/50"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="john.doe@example.com" defaultValue="john.doe@example.com" />
+              <Input 
+                id="email" 
+                type="email" 
+                placeholder="john.doe@example.com" 
+                value={formData.email} 
+                onChange={handleChange}
+                className="bg-background/50"
+                disabled
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
-              <Input id="phone" placeholder="+1 (555) 123-4567" defaultValue="+1 (555) 123-4567" />
+              <Input 
+                id="phone" 
+                placeholder="+1 (555) 123-4567" 
+                value={formData.phone} 
+                onChange={handleChange}
+                className="bg-background/50"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="dob">Date of Birth</Label>
-              <Input id="dob" type="date" defaultValue="1990-01-01" />
+              <Input 
+                id="dob" 
+                type="date" 
+                value={formData.dob} 
+                onChange={handleChange}
+                className="bg-background/50"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="gender">Gender</Label>
-              <Select defaultValue="male">
-                <SelectTrigger id="gender">
+              <Select 
+                value={formData.gender} 
+                onValueChange={(value) => handleSelectChange(value, 'gender')}
+              >
+                <SelectTrigger id="gender" className="bg-background/50">
                   <SelectValue placeholder="Select gender" />
                 </SelectTrigger>
                 <SelectContent>
@@ -61,43 +196,83 @@ const UserProfile: React.FC = () => {
 
           <div className="space-y-2">
             <Label htmlFor="address">Address</Label>
-            <Input id="address" placeholder="123 Main St" defaultValue="123 Main St" />
+            <Input 
+              id="address" 
+              placeholder="123 Main St" 
+              value={formData.address} 
+              onChange={handleChange}
+              className="bg-background/50"
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
               <Label htmlFor="city">City</Label>
-              <Input id="city" placeholder="New York" defaultValue="New York" />
+              <Input 
+                id="city" 
+                placeholder="New York" 
+                value={formData.city} 
+                onChange={handleChange}
+                className="bg-background/50"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="state">State</Label>
-              <Input id="state" placeholder="NY" defaultValue="NY" />
+              <Input 
+                id="state" 
+                placeholder="NY" 
+                value={formData.state} 
+                onChange={handleChange}
+                className="bg-background/50"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="zip">ZIP Code</Label>
-              <Input id="zip" placeholder="10001" defaultValue="10001" />
+              <Input 
+                id="zip" 
+                placeholder="10001" 
+                value={formData.zip} 
+                onChange={handleChange}
+                className="bg-background/50"
+              />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="medical-history">Medical History</Label>
+            <Label htmlFor="medicalHistory">Medical History</Label>
             <Textarea
-              id="medical-history"
+              id="medicalHistory"
               placeholder="Include any relevant medical history, chronic conditions, allergies, or current medications..."
-              defaultValue="No significant medical history. Mild seasonal allergies."
-              className="min-h-[100px]"
+              value={formData.medicalHistory}
+              onChange={handleChange}
+              className="min-h-[100px] bg-background/50"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="emergency-contact">Emergency Contact</Label>
-            <Input id="emergency-contact" placeholder="Jane Doe (555) 987-6543" defaultValue="Jane Doe (555) 987-6543" />
+            <Label htmlFor="emergencyContact">Emergency Contact</Label>
+            <Input 
+              id="emergencyContact" 
+              placeholder="Jane Doe (555) 987-6543" 
+              value={formData.emergencyContact} 
+              onChange={handleChange}
+              className="bg-background/50"
+            />
           </div>
 
           <div className="flex justify-end">
-            <Button type="button" className="health-button-primary">
-              <Save className="mr-2 h-4 w-4" />
-              Save Changes
+            <Button type="submit" className="health-button-primary" disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Changes
+                </>
+              )}
             </Button>
           </div>
         </form>

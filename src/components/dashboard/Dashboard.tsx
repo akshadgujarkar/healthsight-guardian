@@ -1,64 +1,64 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link } from 'react-router-dom';
-import { Activity, Calendar, FileText, PlusCircle, User } from 'lucide-react';
+import { Activity, Calendar, FileText, PlusCircle, User, Loader2 } from 'lucide-react';
 import HealthHistory from './HealthHistory';
 import UserProfile from './UserProfile';
+import { getUserHealthHistory, getHealthRecommendations, calculateHealthStatus } from '@/services/dbService';
+
+// Mock user ID - in a real app this would come from authentication
+const MOCK_USER_ID = '65f5e16c8e3f7b6a12345678';
 
 const Dashboard: React.FC = () => {
-  // Mock data - in a real app, this would come from API/backend
-  const recentAnalyses = [
-    {
-      id: 1,
-      date: '2023-06-15',
-      symptoms: ['Headache', 'Fatigue', 'Fever'],
-      diagnosis: 'Common Cold',
-      recommendations: 'Rest, hydration, over-the-counter cold medication'
-    },
-    {
-      id: 2,
-      date: '2023-05-30',
-      symptoms: ['Joint pain', 'Stiffness', 'Swelling'],
-      diagnosis: 'Possible Arthritis',
-      recommendations: 'Anti-inflammatory medication, consult with rheumatologist'
-    }
-  ];
+  const [healthStatus, setHealthStatus] = useState('Loading...');
+  const [recentAnalyses, setRecentAnalyses] = useState<any[]>([]);
+  const [healthInsights, setHealthInsights] = useState<any[]>([]);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const healthInsights = [
-    {
-      title: 'Sleep Pattern',
-      status: 'Irregular',
-      recommendation: 'Try to maintain a consistent sleep schedule, even on weekends.'
-    },
-    {
-      title: 'Stress Level',
-      status: 'Moderate',
-      recommendation: 'Consider daily meditation or mindfulness practices to reduce stress.'
-    },
-    {
-      title: 'Exercise',
-      status: 'Below Target',
-      recommendation: 'Aim for at least 30 minutes of moderate activity most days.'
-    }
-  ];
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setIsLoading(true);
+      try {
+        // Get health history from database
+        const history = await getUserHealthHistory(MOCK_USER_ID);
+        setRecentAnalyses(history || []);
+        
+        // Get personalized recommendations
+        const recommendations = await getHealthRecommendations(MOCK_USER_ID);
+        setHealthInsights(recommendations || []);
+        
+        // Get health status
+        const status = await calculateHealthStatus(MOCK_USER_ID);
+        setHealthStatus(status);
+        
+        // Mock upcoming appointments
+        setUpcomingAppointments([
+          {
+            id: 1,
+            type: 'Annual Physical',
+            doctor: 'Dr. Sarah Johnson',
+            date: '2023-07-10',
+            time: '10:00 AM'
+          }
+        ]);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const upcomingAppointments = [
-    {
-      id: 1,
-      type: 'Annual Physical',
-      doctor: 'Dr. Sarah Johnson',
-      date: '2023-07-10',
-      time: '10:00 AM'
-    }
-  ];
+    fetchDashboardData();
+  }, []);
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Your Health Dashboard</h1>
+        <h1 className="text-2xl font-bold text-foreground">Your Health Dashboard</h1>
         <Button asChild className="health-button-primary">
           <Link to="/symptom-checker">
             <PlusCircle className="mr-2 h-4 w-4" />
@@ -68,79 +68,109 @@ const Dashboard: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
+        <Card className="border-accent-foreground/10 bg-card/50 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Recent Analyses</CardTitle>
+            <CardTitle className="text-sm font-medium text-foreground">Recent Analyses</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{recentAnalyses.length}</div>
-            <p className="text-xs text-muted-foreground">
-              +0% from last month
-            </p>
+            {isLoading ? (
+              <Loader2 className="h-5 w-5 mx-auto animate-spin text-muted-foreground" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-foreground">{recentAnalyses.length}</div>
+                <p className="text-xs text-muted-foreground">
+                  {recentAnalyses.length > 0 
+                    ? `Last check: ${new Date(recentAnalyses[0].date).toLocaleDateString()}` 
+                    : 'No analyses yet'}
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-accent-foreground/10 bg-card/50 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Health Status</CardTitle>
+            <CardTitle className="text-sm font-medium text-foreground">Health Status</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Good</div>
-            <p className="text-xs text-muted-foreground">
-              Based on your recent health data
-            </p>
+            {isLoading ? (
+              <Loader2 className="h-5 w-5 mx-auto animate-spin text-muted-foreground" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-foreground">{healthStatus}</div>
+                <p className="text-xs text-muted-foreground">
+                  Based on your recent health data
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-accent-foreground/10 bg-card/50 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Upcoming Appointments</CardTitle>
+            <CardTitle className="text-sm font-medium text-foreground">Upcoming Appointments</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{upcomingAppointments.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Next: Annual Physical on July 10
-            </p>
+            {isLoading ? (
+              <Loader2 className="h-5 w-5 mx-auto animate-spin text-muted-foreground" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-foreground">{upcomingAppointments.length}</div>
+                <p className="text-xs text-muted-foreground">
+                  {upcomingAppointments.length > 0 
+                    ? `Next: ${upcomingAppointments[0].type} on ${new Date(upcomingAppointments[0].date).toLocaleDateString()}` 
+                    : 'No upcoming appointments'}
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
 
       <Tabs defaultValue="health-history" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="health-history">Health History</TabsTrigger>
-          <TabsTrigger value="insights">Insights & Recommendations</TabsTrigger>
-          <TabsTrigger value="profile">My Profile</TabsTrigger>
+        <TabsList className="bg-background/50 border border-border">
+          <TabsTrigger value="health-history" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Health History</TabsTrigger>
+          <TabsTrigger value="insights" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Insights & Recommendations</TabsTrigger>
+          <TabsTrigger value="profile" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">My Profile</TabsTrigger>
         </TabsList>
         <TabsContent value="health-history" className="space-y-4">
-          <HealthHistory analyses={recentAnalyses} />
+          <HealthHistory />
         </TabsContent>
         <TabsContent value="insights" className="space-y-4">
-          <Card>
+          <Card className="border-accent-foreground/10 bg-card/50 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle>Health Insights</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-foreground">Health Insights</CardTitle>
+              <CardDescription className="text-muted-foreground">
                 Personalized recommendations based on your health data and symptom history
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-6">
-                {healthInsights.map((insight, index) => (
-                  <div key={index} className="border-b pb-4 last:border-0 last:pb-0">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-semibold">{insight.title}</h3>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        insight.status === 'Good' ? 'bg-green-100 text-green-800' :
-                        insight.status === 'Moderate' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {insight.status}
-                      </span>
+              {isLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {healthInsights.map((insight, index) => (
+                    <div key={index} className="border-b border-border pb-4 last:border-0 last:pb-0">
+                      <div className="flex justify-between items-center mb-2">
+                        <h3 className="font-semibold text-foreground">{insight.title}</h3>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          insight.status === 'Good' ? 'bg-green-900/20 text-green-400' :
+                          insight.status === 'Monitor' ? 'bg-amber-900/20 text-amber-400' :
+                          insight.status === 'Recommended' ? 'bg-blue-900/20 text-blue-400' :
+                          insight.status === 'Pending' ? 'bg-slate-900/20 text-slate-400' :
+                          'bg-red-900/20 text-red-400'
+                        }`}>
+                          {insight.status}
+                        </span>
+                      </div>
+                      <p className="text-foreground/80 text-sm">{insight.recommendation}</p>
                     </div>
-                    <p className="text-gray-600 text-sm">{insight.recommendation}</p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

@@ -6,9 +6,9 @@ import Dashboard from '@/components/dashboard/Dashboard';
 
 const DashboardPage: React.FC = () => {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Header />
-      <main className="flex-grow py-10 px-6 bg-gray-50">
+      <main className="flex-grow py-10 px-6">
         <div className="container mx-auto">
           <Dashboard />
         </div>
