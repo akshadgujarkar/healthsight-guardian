@@ -28,8 +28,8 @@ export const getUserProfile = async (email: string) => {
   if (!(await ensureConnection())) return null;
   
   try {
-    const user = await User.findOne({ email }).lean();
-    return user;
+    const user = await User.findOne({ email }).exec();
+    return user ? user.toObject() : null;
   } catch (error) {
     console.error('Failed to get user profile:', error);
     toast.error('Failed to load user profile');
@@ -41,7 +41,7 @@ export const saveUserProfile = async (userData: any) => {
   if (!(await ensureConnection())) return null;
   
   try {
-    const existingUser = await User.findOne({ email: userData.email }).lean();
+    const existingUser = await User.findOne({ email: userData.email }).exec();
     
     if (existingUser) {
       // Update existing user
@@ -49,13 +49,13 @@ export const saveUserProfile = async (userData: any) => {
         { email: userData.email },
         userData,
         { new: true }
-      ).lean();
-      return updatedUser;
+      ).exec();
+      return updatedUser ? updatedUser.toObject() : null;
     } else {
       // Create new user
       const newUser = new User(userData);
-      await newUser.save();
-      return newUser.toObject();
+      const savedUser = await newUser.save();
+      return savedUser.toObject();
     }
   } catch (error) {
     console.error('Failed to save user profile:', error);
@@ -69,8 +69,8 @@ export const getUserHealthHistory = async (userId: string) => {
   if (!(await ensureConnection())) return [];
   
   try {
-    const history = await HealthHistory.find({ userId }).sort({ date: -1 }).lean();
-    return history;
+    const history = await HealthHistory.find({ userId }).sort({ date: -1 }).exec();
+    return history.map(doc => doc.toObject());
   } catch (error) {
     console.error('Failed to get health history:', error);
     toast.error('Failed to load health history');
@@ -91,8 +91,8 @@ export const saveHealthAnalysis = async (userId: string, analysisData: any) => {
       severity: analysisData.severity || 'Medium'
     });
     
-    await newAnalysis.save();
-    return newAnalysis.toObject();
+    const savedAnalysis = await newAnalysis.save();
+    return savedAnalysis.toObject();
   } catch (error) {
     console.error('Failed to save health analysis:', error);
     toast.error('Failed to save health analysis');
@@ -106,9 +106,10 @@ export const getHealthRecommendations = async (userId: string) => {
   
   try {
     // Get user's health history
-    const healthHistory = await HealthHistory.find({ userId }).sort({ date: -1 }).limit(5).lean();
+    const healthHistory = await HealthHistory.find({ userId }).sort({ date: -1 }).limit(5).exec();
+    const historyObjects = healthHistory.map(doc => doc.toObject());
     
-    if (!healthHistory || healthHistory.length === 0) {
+    if (!historyObjects || historyObjects.length === 0) {
       return [
         {
           title: 'Establish Health Baseline',
@@ -200,17 +201,18 @@ export const calculateHealthStatus = async (userId: string) => {
   if (!(await ensureConnection())) return 'Unknown';
   
   try {
-    const recentHistory = await HealthHistory.find({ userId }).sort({ date: -1 }).limit(3).lean();
+    const recentHistory = await HealthHistory.find({ userId }).sort({ date: -1 }).limit(3).exec();
+    const historyObjects = recentHistory.map(doc => doc.toObject());
     
-    if (!recentHistory || recentHistory.length === 0) {
+    if (!historyObjects || historyObjects.length === 0) {
       return 'No Data';
     }
     
     // Count high severity issues
-    const highSeverityCount = recentHistory.filter(record => record.severity === 'High').length;
+    const highSeverityCount = historyObjects.filter(record => record.severity === 'High').length;
     
     // Count medium severity issues
-    const mediumSeverityCount = recentHistory.filter(record => record.severity === 'Medium').length;
+    const mediumSeverityCount = historyObjects.filter(record => record.severity === 'Medium').length;
     
     // Determine overall status
     if (highSeverityCount >= 2) {
