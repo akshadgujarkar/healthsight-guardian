@@ -16,9 +16,9 @@ const KeyFeatures: React.FC = () => {
           <div className="flex flex-col items-center text-center">
             <div className="mb-6 h-48 w-full bg-gray-200 rounded-lg overflow-hidden">
               <img
-                src="/public/lovable-uploads/9c5eb0cf-c8c7-4403-b999-c8862ed6cec8.png"
+                src="https://static.vecteezy.com/system/resources/previews/048/970/788/non_2x/colorful-digital-workspace-illustration-flat-free-png.png"
                 alt="Symptom checker interface"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover border-2 border-black rounded-lg"
               />
             </div>
             <h3 className="text-xl font-bold mb-3">
@@ -41,9 +41,9 @@ const KeyFeatures: React.FC = () => {
           <div className="flex flex-col items-center text-center">
             <div className="mb-6 h-48 w-full bg-gray-200 rounded-lg overflow-hidden">
               <img
-                src="/public/lovable-uploads/22c726a4-1dad-45a3-9b10-3ce35ec79972.png"
+                src="https://worldclinic.com/wp-content/uploads/2025/01/types-and-branches-of-personalized-medicine-1024x873.png"
                 alt="Disease information interface"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover border-2 border-black rounded-lg"
               />
             </div>
             <h3 className="text-xl font-bold mb-3">
@@ -64,11 +64,11 @@ const KeyFeatures: React.FC = () => {
           </div>
 
           <div className="flex flex-col items-center text-center">
-            <div className="mb-6 h-48 w-full bg-gray-200 rounded-lg overflow-hidden">
+            <div className="mb-6 h-48 w-full bg-gray-200 rounded-lg border-red-100 overflow-hidden">
               <img
-                src="/public/lovable-uploads/67917058-4ca0-4c39-a73f-5d1a48727a5d.png"
+                src="https://cdn.who.int/media/images/default-source/health-topics/coronavirus/person-sick-in-your-household-what-to-do.jpg?sfvrsn=39d1287_18"
                 alt="Prevention tips interface"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover border-2 border-black rounded-lg"
               />
             </div>
             <h3 className="text-xl font-bold mb-3">

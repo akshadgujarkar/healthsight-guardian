@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,10 +6,11 @@ import { Link } from 'react-router-dom';
 import { Activity, Calendar, FileText, PlusCircle, User, Loader2 } from 'lucide-react';
 import HealthHistory from './HealthHistory';
 import UserProfile from './UserProfile';
-import { getUserHealthHistory, getHealthRecommendations, calculateHealthStatus } from '@/services/dbService';
 
-// Mock user ID - in a real app this would come from authentication
-const MOCK_USER_ID = '65f5e16c8e3f7b6a12345678';
+import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
+import { db } from '@/config/dbConfig';
+
+const MOCK_USER_EMAIL = 'john.doe@example.com';
 
 const Dashboard: React.FC = () => {
   const [healthStatus, setHealthStatus] = useState('Loading...');
@@ -23,28 +23,25 @@ const Dashboard: React.FC = () => {
     const fetchDashboardData = async () => {
       setIsLoading(true);
       try {
-        // Get health history from database
-        const history = await getUserHealthHistory(MOCK_USER_ID);
-        setRecentAnalyses(history || []);
-        
-        // Get personalized recommendations
-        const recommendations = await getHealthRecommendations(MOCK_USER_ID);
-        setHealthInsights(recommendations || []);
-        
-        // Get health status
-        const status = await calculateHealthStatus(MOCK_USER_ID);
-        setHealthStatus(status);
-        
-        // Mock upcoming appointments
-        setUpcomingAppointments([
-          {
-            id: 1,
-            type: 'Annual Physical',
-            doctor: 'Dr. Sarah Johnson',
-            date: '2023-07-10',
-            time: '10:00 AM'
-          }
-        ]);
+        // Fetch health history from Firestore
+        const historyRef = collection(db, `healthHistory/${MOCK_USER_EMAIL}/healthHistory`);
+        const historySnap = await getDocs(historyRef);
+        setRecentAnalyses(historySnap.docs.map(doc => doc.data()));
+
+        // Fetch personalized recommendations
+        const recommendationsRef = collection(db, `healthHistory/2aRgaDBgYkfBxT71Nsds/recommendations`);
+        const recommendationsSnap = await getDocs(recommendationsRef);
+        setHealthInsights(recommendationsSnap.docs.map(doc => doc.data()));
+
+        // Fetch health status
+        const statusRef = doc(db, `users/${MOCK_USER_EMAIL}`);
+        const statusSnap = await getDoc(statusRef);
+        setHealthStatus(statusSnap.exists() ? statusSnap.data().healthStatus : 'Unknown');
+
+        // Fetch upcoming appointments
+        const appointmentsRef = collection(db, `users/${MOCK_USER_EMAIL}/appointments`);
+        const appointmentsSnap = await getDocs(appointmentsRef);
+        setUpcomingAppointments(appointmentsSnap.docs.map(doc => doc.data()));
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {

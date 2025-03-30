@@ -1,22 +1,29 @@
-import mongoose from 'mongoose';
+// Import Firebase modules
+import { initializeApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { getDatabase } from 'firebase/database';
+import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 
-const MONGO_URI: string ='mongodb://localhost:27017/healthAssistant';
-
-let isConnected = false; // Track the connection status
-
-export const connectDB = async (): Promise<void> => {
-  if (isConnected) {
-    console.log('✅ Already connected to MongoDB');
-    return;
-  }
-
-  try {
-    const db = await mongoose.connect(MONGO_URI);
-
-    isConnected = db.connection.readyState === 1; // 1 means connected
-    console.log('✅ MongoDB Connected:', db.connection.host);
-  } catch (error) {
-    console.error('❌ MongoDB connection error:', (error as Error).message);
-    throw new Error('Database connection failed');
-  }
+// Firebase configuration object
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
+export default firebaseConfig;
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+// Initialize Firestore database
+const db = getFirestore(app);
+
+// Initialize Firebase Authentication
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
+
+// Export instances for use in the project
+export { app, db, auth, googleProvider };

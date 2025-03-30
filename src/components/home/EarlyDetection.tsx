@@ -57,7 +57,7 @@ const EarlyDetection: React.FC = () => {
           
           <div className="rounded-lg overflow-hidden shadow-xl">
             <img 
-              src="/public/lovable-uploads/9c5eb0cf-c8c7-4403-b999-c8862ed6cec8.png" 
+              src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQjkatXXpVqLT4RUjQoe8ykOH2Tq7t0iinUdw&s" 
               alt="Health monitoring dashboard" 
               className="w-full h-full object-cover"
             />

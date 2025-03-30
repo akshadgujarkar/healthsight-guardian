@@ -1,29 +1,19 @@
-import User from '../models/User';
-import HealthHistory from '../models/HealthHistory';
-import { connectDB } from '../config/dbConfig';
+
+import { db } from '@/config/dbConfig';
+import { collection, doc, getDocs, getDoc, addDoc, updateDoc, query, where, deleteDoc, Timestamp, setDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
-import mongoose, { ConnectionStates } from 'mongoose';
 
-// Initialize connection when the service is imported
-let isConnected = false;
-
-const ensureConnection = async (): Promise<boolean> => {
-  try {   
-     await connectDB();
-    return (mongoose.connection.readyState === 1 as number); // Corrected type comparison
-  } catch (error) {
-    console.error('❌ Database connection failed:', error);
-    return false;
-  }
-};
+// Firestore collection references
+const usersCollection = collection(db, 'users');
+const healthHistoryCollection = collection(db, 'healthHistory');
+const healthAnalysisCollection = collection(db, 'analysis');
 
 // User-related operations
 export const getUserProfile = async (email: string) => {
-  if (!(await ensureConnection())) return null;
-
   try {
-    const user = await User.findOne({ email }).exec();
-    return user ? user.toObject() : null;
+    const q = query(usersCollection, where('email', '==', email));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.empty ? null : querySnapshot.docs[0].data();
   } catch (error) {
     console.error('Failed to get user profile:', error);
     toast.error('Failed to load user profile');
@@ -31,28 +21,32 @@ export const getUserProfile = async (email: string) => {
   }
 };
 
-export const saveUserProfile = async (userData: any) => {
-  if (!(await ensureConnection())) return null;
 
+
+export interface Analysis {
+  id?: string;
+  date: string;
+  symptoms: string[];
+  diagnosis: string;
+  recommendations: string;
+  severity?: "Low" | "Medium" | "High";
+}
+
+export const saveUserProfile = async (userData: any) => {
   try {
-    const { email } = userData; // Fix: Destructure email
+    const { email } = userData;
     if (!email) throw new Error('Email is required');
 
-    const existingUser = await User.findOne({ email }).exec();
-
-    if (existingUser) {
-      // Update existing user
-      const updatedUser = await User.findOneAndUpdate(
-        { email },
-        userData,
-        { new: true }
-      ).exec();
-      return updatedUser ? updatedUser.toObject() : null;
+    const q = query(usersCollection, where('email', '==', email));
+    const querySnapshot = await getDocs(q);
+    
+    if (!querySnapshot.empty) {
+      const userDoc = querySnapshot.docs[0].ref;
+      await updateDoc(userDoc, userData);
+      return { id: userDoc.id, ...userData };
     } else {
-      // Create new user
-      const newUser = new User(userData);
-      const savedUser = await newUser.save();
-      return savedUser.toObject();
+      const docRef = await addDoc(usersCollection, userData);
+      return { id: docRef.id, ...userData };
     }
   } catch (error) {
     console.error('Failed to save user profile:', error);
@@ -62,160 +56,106 @@ export const saveUserProfile = async (userData: any) => {
 };
 
 // Health history operations
-export const getUserHealthHistory = async (userId: string) => {
-  if (!(await ensureConnection())) return [];
-
+export const getUserHealthHistory = async (userId: string): Promise<Analysis[]> => {
   try {
-    const history = await HealthHistory.find({ userId }).sort({ date: -1 }).exec();
-    return history.map(doc => doc.toObject());
+    const healthHistoryRef = collection(db, "healthHistory");
+    const q = query(healthHistoryRef, where("userId", "==", userId));
+    const querySnapshot = await getDocs(q);
+
+    return querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        date: data.date instanceof Timestamp ? data.date.toDate().toISOString() : data.date,
+        symptoms: data.symptoms || [],
+        diagnosis: data.diagnosis || "",
+        recommendations: data.recommendations || "",
+        severity: data.severity || "Medium",
+      };
+    });
   } catch (error) {
-    console.error('Failed to get health history:', error);
-    toast.error('Failed to load health history');
-    return [];
+    console.error("Error fetching health history:", error);
+    throw error;
   }
 };
 
 export const saveHealthAnalysis = async (userId: string, analysisData: any) => {
-  if (!(await ensureConnection())) return null;
-
   try {
-    const newAnalysis = new HealthHistory({
+    const newAnalysis = {
       userId,
-      date: new Date(),
-      symptoms: analysisData.symptoms,
-      diagnosis: analysisData.diagnosis,
-      recommendations: analysisData.recommendations,
-      severity: analysisData.severity || 'Medium'
-    });
+      date: new Date().toISOString(), // Store date in ISO format for consistency
+      ...analysisData
+    };
 
-    const savedAnalysis = await newAnalysis.save();
-    return savedAnalysis.toObject();
+    await addDoc(healthAnalysisCollection, newAnalysis);
+
+    return { id: userId, ...newAnalysis };
   } catch (error) {
-    console.error('Failed to save health analysis:', error);
-    toast.error('Failed to save health analysis');
+    console.error("Failed to save health analysis:", error);
+    toast.error("Failed to save health analysis");
     return null;
   }
 };
 
 // Recommendation system
 export const getHealthRecommendations = async (userId: string) => {
-  if (!(await ensureConnection())) return [];
-
   try {
-    // Get user's health history
-    const healthHistory = await HealthHistory.find({ userId }).sort({ date: -1 }).limit(5).exec();
-    const historyObjects = healthHistory.map(doc => doc.toObject());
+    const q = query(healthHistoryCollection, where('userId', '==', userId));
+    const querySnapshot = await getDocs(q);
+    const historyObjects = querySnapshot.docs.map(doc => doc.data());
 
     if (historyObjects.length === 0) {
-      return [
-        {
-          title: 'Establish Health Baseline',
-          status: 'Pending',
-          recommendation: 'Complete your first symptom check to establish your health baseline.'
-        }
-      ];
+      return [{ title: 'Establish Health Baseline', status: 'Pending', recommendation: 'Complete your first symptom check.' }];
     }
 
-    // Extract common symptoms and conditions
-    const allSymptoms = historyObjects.length > 0 ? historyObjects.flatMap(record => record.symptoms) : [];
     const symptomFrequency: Record<string, number> = {};
-
-    allSymptoms.forEach(symptom => {
+    historyObjects.flatMap(record => record.symptoms).forEach(symptom => {
       symptomFrequency[symptom] = (symptomFrequency[symptom] || 0) + 1;
     });
-
-    // Generate personalized recommendations
+    
     const recommendations = [];
-
-    // Check for recurring symptoms
-    const recurringSymptoms = Object.entries(symptomFrequency)
-      .filter(([_, count]) => count > 1)
-      .map(([symptom]) => symptom);
-
+    const recurringSymptoms = Object.keys(symptomFrequency).filter(symptom => symptomFrequency[symptom] > 1);
     if (recurringSymptoms.length > 0) {
-      recommendations.push({
-        title: 'Recurring Symptoms',
-        status: 'Attention Needed',
-        recommendation: `Consider consulting a specialist about your recurring ${recurringSymptoms.join(', ')} symptoms.`
-      });
+      recommendations.push({ title: 'Recurring Symptoms', status: 'Attention Needed', recommendation: `Consult a specialist about ${recurringSymptoms.join(', ')}.` });
     }
 
-    // Check recent diagnoses (Fix: Ensure history is not empty)
-    const recentDiagnosis = healthHistory[0]?.diagnosis || 'Unknown Condition';
-    recommendations.push({
-      title: 'Recent Diagnosis',
-      status: 'Follow Up',
-      recommendation: `Follow the recommended treatment plan for your recent ${recentDiagnosis} diagnosis.`
-    });
+    const recentDiagnosis = historyObjects[0]?.diagnosis || 'Unknown Condition';
+    recommendations.push({ title: 'Recent Diagnosis', status: 'Follow Up', recommendation: `Follow treatment for ${recentDiagnosis}.` });
 
-    // General health recommendations based on history
-    if (historyObjects.some(record => 
-        record.diagnosis.toLowerCase().includes('stress') ||
-        record.symptoms.some(s => s.toLowerCase().includes('stress') || s.toLowerCase().includes('anxiety')))) {
-      recommendations.push({
-        title: 'Stress Management',
-        status: 'Recommended',
-        recommendation: 'Practice daily stress reduction techniques like meditation or deep breathing.'
-      });
+    if (historyObjects.some(record => record.symptoms.includes('stress') || record.symptoms.includes('anxiety'))){
+      recommendations.push({ title: 'Stress Management', status: 'Recommended', recommendation: 'Try meditation or deep breathing.' });
     }
 
-    if (historyObjects.some(record =>
-        record.symptoms.some(s => s.toLowerCase().includes('fatigue') || s.toLowerCase().includes('tired')))) {
-      recommendations.push({
-        title: 'Energy Levels',
-        status: 'Monitor',
-        recommendation: 'Ensure you\'re getting 7-9 hours of quality sleep and staying hydrated throughout the day.'
-      });
+    if (historyObjects.some(record => record.symptoms.includes('fatigue') || record.symptoms.includes('tired'))){
+      recommendations.push({ title: 'Energy Levels', status: 'Monitor', recommendation: 'Ensure good sleep and hydration.' });
     }
 
-    // Add a default recommendation if none exist
     if (recommendations.length < 3) {
-      recommendations.push({
-        title: 'Preventive Care',
-        status: 'Recommended',
-        recommendation: 'Schedule a general check-up with your doctor if you haven\'t had one in the past year.'
-      });
+      recommendations.push({ title: 'Preventive Care', status: 'Recommended', recommendation: 'Schedule a general check-up.' });
     }
 
     return recommendations;
   } catch (error) {
     console.error('Failed to generate health recommendations:', error);
-    return [
-      {
-        title: 'Health Monitoring',
-        status: 'Recommended',
-        recommendation: 'Regular health check-ups are recommended to maintain optimal health.'
-      }
-    ];
+    return [{ title: 'Health Monitoring', status: 'Recommended', recommendation: 'Regular health check-ups are advised.' }];
   }
 };
 
-// Health status determination based on history
+// Health status determination
 export const calculateHealthStatus = async (userId: string) => {
-  if (!(await ensureConnection())) return 'Unknown';
-
   try {
-    const recentHistory = await HealthHistory.find({ userId }).sort({ date: -1 }).limit(3).exec();
-    const historyObjects = recentHistory.map(doc => doc.toObject());
+    const q = query(healthHistoryCollection, where('userId', '==', userId));
+    const querySnapshot = await getDocs(q);
+    const historyObjects = querySnapshot.docs.map(doc => doc.data());
 
-    if (historyObjects.length === 0) {
-      return 'No Data';
-    }
-
-    // Count high severity issues
+    if (historyObjects.length === 0) return 'No Data';
+    
     const highSeverityCount = historyObjects.filter(record => record.severity === 'High').length;
-
-    // Count medium severity issues
     const mediumSeverityCount = historyObjects.filter(record => record.severity === 'Medium').length;
 
-    // Determine overall status
-    if (highSeverityCount >= 2) {
-      return 'Needs Attention';
-    } else if (highSeverityCount === 1 || mediumSeverityCount >= 2) {
-      return 'Monitor';
-    } else {
-      return 'Good';
-    }
+    if (highSeverityCount >= 2) return 'Needs Attention';
+    if (highSeverityCount === 1 || mediumSeverityCount >= 2) return 'Monitor';
+    return 'Good';
   } catch (error) {
     console.error('Failed to calculate health status:', error);
     return 'Unknown';

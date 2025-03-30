@@ -4,20 +4,46 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DiagnosisResultType } from './SymptomChecker';
 import NearbyHospitals from './NearbyHospitals';
-import { ArrowLeft, ThumbsUp, ThumbsDown, Activity, Pill, Shield, Stethoscope, HelpCircle } from 'lucide-react';
+import { ArrowLeft, ThumbsUp, ThumbsDown, Activity, Pill, Shield, Stethoscope, HelpCircle, Save } from 'lucide-react';
+import { saveHealthAnalysis } from '@/services/dbService';
+import { toast } from 'sonner';
+
+
 
 interface DiagnosisResultProps {
   result: DiagnosisResultType;
   onReset: () => void;
   symptoms?: string[];
+  userId: string;
 }
 
-const DiagnosisResult: React.FC<DiagnosisResultProps> = ({ result, onReset, symptoms = [] }) => {
+const DiagnosisResult: React.FC<DiagnosisResultProps> = ({ result, onReset, symptoms = [], userId }) => {
   const [feedbackGiven, setFeedbackGiven] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const handleFeedback = (isHelpful: boolean) => {
     console.log(`User found diagnosis ${isHelpful ? 'helpful' : 'not helpful'}`);
     setFeedbackGiven(true);
+  };
+
+  const handleSaveDiagnosis = async () => {
+    setSaving(true);
+    const analysisData = {
+      symptoms,
+      diagnosis: result.possibleConditions,
+      recommendations: result.recommendations,
+      medications: result.medications,
+      preventionTips: result.preventionTips,
+      followUpQuestions: result.followUpQuestions,
+    };
+
+    const savedData = await saveHealthAnalysis(userId, analysisData);
+    if (savedData) {
+      toast.success('Diagnosis saved successfully!');
+    } else {
+      toast.error('Failed to save diagnosis.');
+    }
+    setSaving(false);
   };
 
   return (
@@ -169,6 +195,11 @@ const DiagnosisResult: React.FC<DiagnosisResultProps> = ({ result, onReset, symp
           </Tabs>
         </CardContent>
       </Card>
+      
+      <Button onClick={handleSaveDiagnosis} disabled={saving} className="flex items-center">
+        <Save className="h-4 w-4 mr-2" />
+        {saving ? 'Saving...' : 'Save Diagnosis'}
+      </Button>
       
       {result.possibleConditions.length > 0 && (
         <NearbyHospitals condition={result.possibleConditions[0].name} />

@@ -23,7 +23,7 @@ export interface DiagnosisResultType {
 }
 
 // Mock user ID - in a real app this would come from authentication
-const MOCK_USER_ID = '65f5e16c8e3f7b6a12345678';
+const MOCK_USER_EMAIL = 'john.doe@example.com';
 
 const SymptomChecker: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -43,7 +43,7 @@ const SymptomChecker: React.FC = () => {
         const topCondition = result.possibleConditions[0];
         const severity = determineSeverity(topCondition.probability);
         
-        await saveHealthAnalysis(MOCK_USER_ID, {
+        await saveHealthAnalysis(MOCK_USER_EMAIL, {
           symptoms,
           diagnosis: topCondition.name,
           recommendations: result.recommendations.join('. '),
@@ -81,6 +81,7 @@ const SymptomChecker: React.FC = () => {
         <SymptomForm onSubmit={handleSubmitSymptoms} isLoading={isAnalyzing} />
       ) : (
         <DiagnosisResult 
+          userId={MOCK_USER_EMAIL}
           result={diagnosisResult} 
           onReset={handleReset} 
           symptoms={currentSymptoms}

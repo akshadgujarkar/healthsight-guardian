@@ -1,24 +1,12 @@
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Calendar, Clock, FileText, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { getUserHealthHistory } from '@/services/dbService';
-
-
-interface Analysis {
-  _id?: string; // MongoDB _id is a string when converted
-  date: string;
-  symptoms: string[];
-  diagnosis: string;
-  recommendations: string;
-  severity?: string;
-}
-
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Calendar, FileText, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { getUserHealthHistory, Analysis } from "@/services/dbService";
 
 // Mock user ID - in a real app this would come from authentication
-const MOCK_USER_ID = '65f5e16c8e3f7b6a12345678';
+const MOCK_USER_ID = "65f5e16c8e3f7b6a12345678";
 
 const HealthHistory: React.FC = () => {
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
@@ -29,27 +17,9 @@ const HealthHistory: React.FC = () => {
       setIsLoading(true);
       try {
         const history = await getUserHealthHistory(MOCK_USER_ID);
-        
-        if (history && history.length > 0) {
-          // Transform data format if needed
-          const formattedHistory = history.map(item => ({
-            _id: item._id.toString(), // Convert ObjectId to string
-            date: new Date(item.date).toISOString(),
-            symptoms: item.symptoms,
-            diagnosis: item.diagnosis,
-            recommendations: item.recommendations,
-            severity: item.severity
-          }));
-          
-          
-          setAnalyses(formattedHistory);
-        } else {
-          // If no data in DB, use mock data from props if available
-          setAnalyses([]);
-        }
+        setAnalyses(history);
       } catch (error) {
-        console.error('Error fetching health history:', error);
-        toast.error('Failed to load health history');
+        toast.error("Failed to load health history");
         setAnalyses([]);
       } finally {
         setIsLoading(false);
@@ -60,8 +30,7 @@ const HealthHistory: React.FC = () => {
   }, []);
 
   const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
+    return new Date(dateString).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
   };
 
   if (isLoading) {
@@ -86,7 +55,7 @@ const HealthHistory: React.FC = () => {
         {analyses.length > 0 ? (
           <div className="space-y-6">
             {analyses.map((analysis) => (
-              <div key={analysis._id || analysis._id} className="border border-border rounded-lg p-4 hover:bg-accent/5 transition-colors">
+              <div key={analysis.id} className="border border-border rounded-lg p-4 hover:bg-accent/5 transition-colors">
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="font-bold text-lg text-foreground">{analysis.diagnosis}</h3>
@@ -98,9 +67,9 @@ const HealthHistory: React.FC = () => {
                   <div className="flex items-center">
                     {analysis.severity && (
                       <span className={`mr-3 px-3 py-1 rounded-full text-xs font-medium ${
-                        analysis.severity === 'Low' ? 'bg-green-900/20 text-green-400' : 
-                        analysis.severity === 'Medium' ? 'bg-amber-900/20 text-amber-400' : 
-                        'bg-red-900/20 text-red-400'
+                        analysis.severity === "Low" ? "bg-green-900/20 text-green-400" : 
+                        analysis.severity === "Medium" ? "bg-amber-900/20 text-amber-400" : 
+                        "bg-red-900/20 text-red-400"
                       }`}>
                         {analysis.severity}
                       </span>
@@ -115,10 +84,7 @@ const HealthHistory: React.FC = () => {
                   <h4 className="font-semibold text-sm text-muted-foreground mb-1">Symptoms</h4>
                   <div className="flex flex-wrap gap-2">
                     {analysis.symptoms.map((symptom, index) => (
-                      <span 
-                        key={index} 
-                        className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-medium"
-                      >
+                      <span key={index} className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-medium">
                         {symptom}
                       </span>
                     ))}

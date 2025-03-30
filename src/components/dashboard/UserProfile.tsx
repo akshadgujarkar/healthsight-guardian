@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,10 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { User, Save, Loader2 } from 'lucide-react';
-import { saveUserProfile, getUserProfile } from '@/services/dbService';
 import { toast } from 'sonner';
 
-// Mock user email - in a real app this would come from authentication
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '@/config/dbConfig';
+
+// Mock user email (Replace with authenticated user email in production)
 const MOCK_USER_EMAIL = 'john.doe@example.com';
 
 const UserProfile: React.FC = () => {
@@ -28,7 +29,7 @@ const UserProfile: React.FC = () => {
     medicalHistory: '',
     emergencyContact: ''
   });
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -36,27 +37,17 @@ const UserProfile: React.FC = () => {
     const fetchUserProfile = async () => {
       setIsLoading(true);
       try {
-        const userProfile = await getUserProfile(MOCK_USER_EMAIL);
-        
-        if (userProfile) {
-          // Format date for input field
-          const formattedDob = userProfile.dob 
-            ? new Date(userProfile.dob).toISOString().split('T')[0]
-            : '';
-            
+        const userRef = doc(db, 'users', MOCK_USER_EMAIL);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists()) {
+          const userProfile = userSnap.data();
+          const formattedDob = userProfile.dob ? new Date(userProfile.dob).toISOString().split('T')[0] : '';
+
           setFormData({
-            firstName: userProfile.firstName || '',
-            lastName: userProfile.lastName || '',
-            email: userProfile.email,
-            phone: userProfile.phone || '',
+            ...formData,
+            ...userProfile,
             dob: formattedDob,
-            gender: userProfile.gender || 'male',
-            address: userProfile.address || '',
-            city: userProfile.city || '',
-            state: userProfile.state || '',
-            zip: userProfile.zip || '',
-            medicalHistory: userProfile.medicalHistory || '',
-            emergencyContact: userProfile.emergencyContact || ''
           });
         }
       } catch (error) {
@@ -72,25 +63,20 @@ const UserProfile: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
-    setFormData(prev => ({ ...prev, [id]: value }));
+    setFormData((prev) => ({ ...prev, [id]: value }));
   };
 
   const handleSelectChange = (value: string, field: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    
+
     try {
-      const result = await saveUserProfile(formData);
-      
-      if (result) {
-        toast.success('Profile saved successfully');
-      } else {
-        toast.error('Failed to save profile');
-      }
+      await setDoc(doc(db, 'users', formData.email), formData);
+      toast.success('Profile saved successfully');
     } catch (error) {
       console.error('Error saving profile:', error);
       toast.error('An error occurred while saving your profile');
@@ -125,62 +111,27 @@ const UserProfile: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="firstName">First Name</Label>
-              <Input 
-                id="firstName" 
-                placeholder="John" 
-                value={formData.firstName}
-                onChange={handleChange}
-                className="bg-background/50"
-              />
+              <Input id="firstName" placeholder="John" value={formData.firstName} onChange={handleChange} className="bg-background/50" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="lastName">Last Name</Label>
-              <Input 
-                id="lastName" 
-                placeholder="Doe" 
-                value={formData.lastName}
-                onChange={handleChange}
-                className="bg-background/50"
-              />
+              <Input id="lastName" placeholder="Doe" value={formData.lastName} onChange={handleChange} className="bg-background/50" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="john.doe@example.com" 
-                value={formData.email} 
-                onChange={handleChange}
-                className="bg-background/50"
-                disabled
-              />
+              <Input id="email" type="email" placeholder="john.doe@example.com" value={formData.email} className="bg-background/50" disabled />
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
-              <Input 
-                id="phone" 
-                placeholder="+1 (555) 123-4567" 
-                value={formData.phone} 
-                onChange={handleChange}
-                className="bg-background/50"
-              />
+              <Input id="phone" placeholder="+1 (555) 123-4567" value={formData.phone} onChange={handleChange} className="bg-background/50" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="dob">Date of Birth</Label>
-              <Input 
-                id="dob" 
-                type="date" 
-                value={formData.dob} 
-                onChange={handleChange}
-                className="bg-background/50"
-              />
+              <Input id="dob" type="date" value={formData.dob} onChange={handleChange} className="bg-background/50" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="gender">Gender</Label>
-              <Select 
-                value={formData.gender} 
-                onValueChange={(value) => handleSelectChange(value, 'gender')}
-              >
+              <Select value={formData.gender} onValueChange={(value) => handleSelectChange(value, 'gender')}>
                 <SelectTrigger id="gender" className="bg-background/50">
                   <SelectValue placeholder="Select gender" />
                 </SelectTrigger>
@@ -196,83 +147,33 @@ const UserProfile: React.FC = () => {
 
           <div className="space-y-2">
             <Label htmlFor="address">Address</Label>
-            <Input 
-              id="address" 
-              placeholder="123 Main St" 
-              value={formData.address} 
-              onChange={handleChange}
-              className="bg-background/50"
-            />
+            <Input id="address" placeholder="123 Main St" value={formData.address} onChange={handleChange} className="bg-background/50" />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
               <Label htmlFor="city">City</Label>
-              <Input 
-                id="city" 
-                placeholder="New York" 
-                value={formData.city} 
-                onChange={handleChange}
-                className="bg-background/50"
-              />
+              <Input id="city" placeholder="New York" value={formData.city} onChange={handleChange} className="bg-background/50" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="state">State</Label>
-              <Input 
-                id="state" 
-                placeholder="NY" 
-                value={formData.state} 
-                onChange={handleChange}
-                className="bg-background/50"
-              />
+              <Input id="state" placeholder="NY" value={formData.state} onChange={handleChange} className="bg-background/50" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="zip">ZIP Code</Label>
-              <Input 
-                id="zip" 
-                placeholder="10001" 
-                value={formData.zip} 
-                onChange={handleChange}
-                className="bg-background/50"
-              />
+              <Input id="zip" placeholder="10001" value={formData.zip} onChange={handleChange} className="bg-background/50" />
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="medicalHistory">Medical History</Label>
-            <Textarea
-              id="medicalHistory"
-              placeholder="Include any relevant medical history, chronic conditions, allergies, or current medications..."
-              value={formData.medicalHistory}
-              onChange={handleChange}
-              className="min-h-[100px] bg-background/50"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="emergencyContact">Emergency Contact</Label>
-            <Input 
-              id="emergencyContact" 
-              placeholder="Jane Doe (555) 987-6543" 
-              value={formData.emergencyContact} 
-              onChange={handleChange}
-              className="bg-background/50"
-            />
+            <Textarea id="medicalHistory" placeholder="Include any relevant medical history..." value={formData.medicalHistory} onChange={handleChange} className="min-h-[100px] bg-background/50" />
           </div>
 
           <div className="flex justify-end">
             <Button type="submit" className="health-button-primary" disabled={isSaving}>
-              {isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Changes
-                </>
-              )}
+              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              {isSaving ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>
         </form>

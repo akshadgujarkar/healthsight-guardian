@@ -1,10 +1,9 @@
 import { DiagnosisResultType } from "@/components/symptom/SymptomChecker";
 import { toast } from "@/components/ui/sonner";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { API_KEYS } from "@/config/apiConfig";
 
-// Initialize the Gemini API client with the key from our config
-const genAI = new GoogleGenerativeAI(API_KEYS.GEMINI_API_KEY);
+
+const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 export const analyzeSymptoms = async (
