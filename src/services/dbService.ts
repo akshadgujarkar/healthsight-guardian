@@ -1,4 +1,3 @@
-
 import { db } from '@/config/dbConfig';
 import { collection, doc, getDocs, getDoc, addDoc, updateDoc, query, where, deleteDoc, Timestamp, setDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
@@ -20,8 +19,6 @@ export const getUserProfile = async (email: string) => {
     return null;
   }
 };
-
-
 
 export interface Analysis {
   id?: string;
@@ -83,7 +80,7 @@ export const saveHealthAnalysis = async (userId: string, analysisData: any) => {
   try {
     const newAnalysis = {
       userId,
-      date: new Date().toISOString(), // Store date in ISO format for consistency
+      date: new Date().toISOString(),
       ...analysisData
     };
 
@@ -97,7 +94,6 @@ export const saveHealthAnalysis = async (userId: string, analysisData: any) => {
   }
 };
 
-// Recommendation system
 export const getHealthRecommendations = async (userId: string) => {
   try {
     const q = query(healthHistoryCollection, where('userId', '==', userId));
@@ -141,7 +137,6 @@ export const getHealthRecommendations = async (userId: string) => {
   }
 };
 
-// Health status determination
 export const calculateHealthStatus = async (userId: string) => {
   try {
     const q = query(healthHistoryCollection, where('userId', '==', userId));

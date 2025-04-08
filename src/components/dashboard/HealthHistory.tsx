@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ const HealthHistory: React.FC = () => {
         const history = await getUserHealthHistory(MOCK_USER_ID);
         setAnalyses(history);
       } catch (error) {
+        console.error("Error fetching health history:", error);
         toast.error("Failed to load health history");
         setAnalyses([]);
       } finally {
